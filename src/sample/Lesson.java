@@ -7,11 +7,27 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class Lesson implements Comparable<Lesson>{
+public class Lesson implements Comparable<Lesson> {
     private int order;
     private String name;
     private List<String> teachers;
     private String type;
+
+    public void removeTeacher(String s) {
+        teachers.remove(s);
+    }
+
+    public void addTeacher(String s) {
+        if (teachers.contains(s))
+            return;
+        teachers.add(s);
+    }
+
+    public void renameTeacher(String from, String to) {
+        int index = teachers.indexOf(from);
+        if (index != -1)
+            teachers.set(index, to);
+    }
 
     @Override
     public String toString() {
@@ -21,6 +37,6 @@ public class Lesson implements Comparable<Lesson>{
 
     @Override
     public int compareTo(Lesson o) {
-        return Integer.compare(this.order,o.getOrder());
+        return Integer.compare(this.order, o.getOrder());
     }
 }
