@@ -137,12 +137,14 @@ public class Main extends Application {
         ListView<String> displayedLessonTeachers = new ListView<>();
         TextField displayedLessonType = new TextField();
         ListView<String> displayedTypes = new ListView<>(types);
+        ListView<String> displayedTeacherLessons = new ListView<>();
         displayedDays.setPrefSize(240, 200);
-        displayedLessons.setPrefSize(240, 200);
-        displayedTeachers.setPrefSize(240, 160);
+        displayedLessons.setPrefSize(240, 160);
+        displayedTeachers.setPrefSize(240, 100);
         displayedLessonTeachers.setPrefSize(240, 110);
         displayedLessonType.setPrefWidth(240);
-        displayedTypes.setPrefSize(240, 95);
+        displayedTypes.setPrefSize(240, 100);
+        displayedTeacherLessons.setPrefSize(240, 140);
 
         displayedLessonType.setEditable(false);
         Text constTeacherLabel = new Text("Преподаватели:");
@@ -155,10 +157,13 @@ public class Main extends Application {
         Button addTeacherBtn = new Button("Добавить");
         Button addTeacherToLessonBtn = new Button("Добавить к предмету");
         Button applyTypeToLessonBtn = new Button("Применить к предмету");
+        applyTypeToLessonBtn.setPrefWidth(240);
         Button deleteTeacherFromLessonBtn = new Button("Убрать из предмета");
         addTeacherToLessonBtn.setDisable(true);
         deleteTeacherFromLessonBtn.setDisable(true);
         Button clearTeacherSelection = new Button("Очистить выделение");
+        Button clearLessonSelection = new Button("Очистить выделение");
+        clearLessonSelection.setPrefWidth(240);
         Button deleteDayBtn = new Button("Удалить");
         Button deleteLessonBtn = new Button("Удалить");
         Button deleteTeacherBtn = new Button("Удалить");
@@ -177,7 +182,9 @@ public class Main extends Application {
         displayedToggles.setPrefSize(240, 95);
         // BUTTONS AND FIELDS CONTAINERS
         FlowPane buttonsDays = new FlowPane(10, 10, daysOrder, daysField, addDayBtn, deleteDayBtn);
+        //You can add days if you disable this
         buttonsDays.setVisible(false); //todo
+        //^
         FlowPane buttonsLessons = new FlowPane(10, 10, lessonsOrder, lessonsField, addLessonBtn, deleteLessonBtn);
         FlowPane buttonsTeachers = new FlowPane(10, 10, teachersField, addTeacherBtn, deleteTeacherBtn);
         FlowPane buttonsLessonTeachers = new FlowPane(10, 10, addTeacherToLessonBtn, deleteTeacherFromLessonBtn, clearTeacherSelection);
@@ -189,10 +196,10 @@ public class Main extends Application {
         selectedLessons.setSelectionMode(SelectionMode.MULTIPLE);
         selectedTeachers = displayedTeachers.getSelectionModel();
         selectedTypes = displayedTypes.getSelectionModel();
-//        langsSelectionModel.setSelectionMode(SelectionMode.MULTIPLE);
         //////////////////////////////////////////////////////////////////////
         //           EVENTS                                                 //
         //////////////////////////////////////////////////////////////////////
+
         selectedDays.selectedItemProperty().addListener((changed, oldValue, day) -> {
             if (day != null) {
                 daysField.setText(day.toString());
@@ -216,13 +223,9 @@ public class Main extends Application {
                             }
                         } else {
                             selectedLessons.clearSelection();
-                            for (int i = 0; i < lessons.size(); i++) {
-                                if (lessons.get(i).getType()
-                                        .compareToIgnoreCase(selectedTypes.getSelectedItem().trim()) == 0) {
-                                    selectedLessons.selectIndices(i);
-                                    break;
-                                }
-                            }
+                            for (Lesson l : lessons)
+                                if (l.getType().compareToIgnoreCase(selectedTypes.getSelectedItem())==0)
+                                    selectedLessons.select(l);
                         }
                     }
                 } else selectedDays.select(0);
@@ -234,17 +237,23 @@ public class Main extends Application {
                 lessonsField.setText(lesson.getName());
                 lessonsOrder.setText("№" + lesson.getOrder());
                 if (selected.size() == 1) {
+                    addLessonBtn.setText("Изменить");
                     addTeacherToLessonBtn.setDisable(false);
                     deleteTeacherFromLessonBtn.setDisable(false);
                     displayedLessonType.setText(lesson.getType());
-                    selectedTypes.select(lesson.getType());
+                    if (rb_3.isSelected())
+                        selectedTypes.select(lesson.getType());
+                    displayedLessonTeachers.setItems(FXCollections.observableArrayList(lesson.getTeachers()));
                 } else {
+                    addLessonBtn.setText("Добавить");
                     addTeacherToLessonBtn.setDisable(true);
                     deleteTeacherFromLessonBtn.setDisable(true);
                     displayedLessonType.setText("Выбрано более одного параметра");
+                    displayedLessonTeachers.setItems(FXCollections.observableArrayList("более","одного","элемента"));
                 }
-                displayedLessonTeachers.setItems(FXCollections.observableArrayList(lesson.getTeachers()));
+
             } else {
+                addLessonBtn.setText("Добавить");
                 addTeacherToLessonBtn.setDisable(true);
                 deleteTeacherFromLessonBtn.setDisable(true);
             }
@@ -254,7 +263,14 @@ public class Main extends Application {
                 int i = selectedDays.getSelectedIndex();
                 selectedDays.clearSelection();
                 selectedDays.select(i);
-            }
+                ObservableList<String> lessonsAndDays = FXCollections.observableArrayList();
+                for (Day d : days)
+                    for (Lesson l : d.getLessons())
+                        for (String t : l.getTeachers())
+                            if (t.compareToIgnoreCase(selectedTeachers.getSelectedItem()) == 0)
+                                lessonsAndDays.add(d.getName() + ", " + l.getName());
+                displayedTeacherLessons.setItems(lessonsAndDays);
+            } else displayedTeacherLessons.setItems(FXCollections.observableArrayList());
             if (selectedTeachers.isEmpty()) {
                 addTeacherBtn.setText("Добавить");
                 teachersField.setText("");
@@ -273,6 +289,11 @@ public class Main extends Application {
             selectedTeachers.clearSelection();
             addTeacherToLessonBtn.setDisable(true);
             deleteTeacherFromLessonBtn.setDisable(true);
+        });
+        clearLessonSelection.setOnAction(event -> {
+            selectedLessons.clearSelection();
+            lessonsField.setStyle("-fx-text-inner-color: black;");
+            displayedLessons.setStyle("-fx-background-color: null;");
         });
         daysOrder.setOnKeyTyped(event -> showError(daysOrder, displayedDays));
         daysField.setOnKeyTyped(event -> {
@@ -461,6 +482,7 @@ public class Main extends Application {
             int i = selectedTypes.getSelectedIndex();
             selectedTypes.clearSelection();
             selectedTypes.select(i);
+            displayedTeacherLessons.setItems(FXCollections.observableArrayList());
         });
         rb_3.setOnAction(event -> {
             displayedLessonType.setDisable(false);
@@ -470,32 +492,40 @@ public class Main extends Application {
             selectedDays.clearAndSelect(selectedDays.getSelectedIndex());
         });
         //////////////////////////////////////////////////////////////////////
-        FlowPane daysPane = new FlowPane(Orientation.VERTICAL, 10, 10, new Text("Дни недели"), buttonsDays, displayedDays);
-        FlowPane lessonsPane = new FlowPane(Orientation.VERTICAL, 10, 10, new Text("Предметы"), buttonsLessons, displayedLessons);
+        Text daysLabelText = new Text("Дни недели");
+        if (!buttonsDays.isVisible())
+            daysLabelText.setTranslateY(30);
+        FlowPane daysPane = new FlowPane(Orientation.VERTICAL, 10, 10, daysLabelText, buttonsDays, displayedDays);
+        FlowPane lessonsPane = new FlowPane(Orientation.VERTICAL, 10, 10, new Text("Предметы"), buttonsLessons, displayedLessons,clearLessonSelection);
         FlowPane teachersPane = new FlowPane(Orientation.VERTICAL, 10, 10, new Text("Преподаватели"), buttonsTeachers, displayedTeachers, buttonsLessonTeachers);
         FlowPane lessonDetailsPane = new FlowPane(Orientation.VERTICAL, 10, 20, constTypeLabel, displayedLessonType, constTeacherLabel, displayedLessonTeachers);
         FlowPane typesPane = new FlowPane(Orientation.VERTICAL, 10, 10, new Text("Формы занятий"), displayedTypes, applyTypeToLessonBtn, new Text("Подсветить пары:"), displayedToggles);
+        FlowPane teacherLessonsPane = new FlowPane(Orientation.VERTICAL, 10, 10, new Text("Пары выбранного преподавателя"), displayedTeacherLessons);
         lessonDetailsPane.setTranslateY(30); //moving down to align with other lists
 
         daysPane.setMaxHeight(280);
         lessonsPane.setMaxHeight(280);
         lessonDetailsPane.setMaxHeight(280);
-        teachersPane.setMaxHeight(350);
-        typesPane.setMaxHeight(350);
+        teachersPane.setMaxHeight(320);
+        typesPane.setMaxHeight(320);
+        teacherLessonsPane.setMaxHeight(320);
 
 
-        FlowPane rootPane = new FlowPane(Orientation.HORIZONTAL, 10, 10, daysPane, lessonsPane, lessonDetailsPane, teachersPane, typesPane);
+
+
+        FlowPane rootPane = new FlowPane(Orientation.HORIZONTAL, 10, 10, daysPane, lessonsPane, lessonDetailsPane, teachersPane, typesPane, teacherLessonsPane);
         rootPane.setAlignment(Pos.TOP_CENTER);
         rootPane.setPadding(new Insets(20));
-        Scene scene = new Scene(rootPane, 1280, 720);
+        Scene scene = new Scene(rootPane, 1200, 620);
 
         //////////////////////////////////////////////////////////////////////
         stage.setScene(scene);
         stage.setTitle("Курсовая работа, вариант 15");
 //        stage.setMaximized(true);
+        stage.setResizable(false);
         stage.setOpacity(0);
         stage.show();
-
+        clearLessonSelection.setPrefWidth(lessonsPane.getWidth());
         //launching opacity transition 0 -> 1
         for (double i = 0; i < 100; i++) {
             stage.setOpacity(i / 100);
