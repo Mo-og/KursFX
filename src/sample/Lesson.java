@@ -3,6 +3,7 @@ package sample;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.Collections;
 import java.util.List;
 
 @Data
@@ -21,6 +22,7 @@ public class Lesson implements Comparable<Lesson> {
         if (teachers.contains(s))
             return;
         teachers.add(s);
+        teachers.sort(String::compareToIgnoreCase);
     }
 
     public void renameTeacher(String from, String to) {

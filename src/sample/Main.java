@@ -37,6 +37,11 @@ public class Main extends Application {
         selectedLessons.clearSelection();
         selectedLessons.select(index);
     }
+    public static void refreshDays() {
+        int index = selectedDays.getSelectedIndices().get(0);
+        selectedDays.clearSelection();
+        selectedDays.select(index);
+    }
 
     public static void main(String[] args) {
         Application.launch(args);
@@ -199,7 +204,6 @@ public class Main extends Application {
         //////////////////////////////////////////////////////////////////////
         //           EVENTS                                                 //
         //////////////////////////////////////////////////////////////////////
-
         selectedDays.selectedItemProperty().addListener((changed, oldValue, day) -> {
             if (day != null) {
                 daysField.setText(day.toString());
@@ -248,8 +252,8 @@ public class Main extends Application {
                     addLessonBtn.setText("Добавить");
                     addTeacherToLessonBtn.setDisable(true);
                     deleteTeacherFromLessonBtn.setDisable(true);
-                    displayedLessonType.setText("Выбрано более одного параметра");
-                    displayedLessonTeachers.setItems(FXCollections.observableArrayList("более","одного","элемента"));
+                    displayedLessonType.setText("Выбрано более одного предмета");
+                    displayedLessonTeachers.setItems(FXCollections.observableArrayList("Выбрано","2 или более","элемента"));
                 }
 
             } else {
@@ -354,7 +358,7 @@ public class Main extends Application {
                 for (Lesson l : lessons)
                     if (lessonsField.getText().trim().compareToIgnoreCase(l.getName()) == 0) {
                         lessonsField.setStyle("-fx-text-inner-color: red;");
-                        selectedLessons.select(l.getOrder() - 1);
+                        selectedLessons.select(l);
                         displayedLessons.setStyle("-fx-background-color: red;");
                         return;
                     }
@@ -365,7 +369,6 @@ public class Main extends Application {
                             l.setOrder(l.getOrder() + 1);
                     }
                 }
-
                 lessons.add(new Lesson(order, lessonsField.getText().trim(), new ArrayList<>(5), ""));
             }
             Collections.sort(lessons);
@@ -399,6 +402,10 @@ public class Main extends Application {
             displayedTeachers.refresh();
             selectedTeachers.select(teacherName);
         });
+        addTeacherToLessonBtn.setOnAction(event -> {
+            selectedLessons.getSelectedItem().addTeacher(selectedTeachers.getSelectedItem());
+            refreshLessonTeachers();
+        });
         applyTypeToLessonBtn.setOnAction(event -> {
             selectedLessons.getSelectedItem().setType(selectedTypes.getSelectedItem());
             displayedLessonType.setText(selectedTypes.getSelectedItem());
@@ -430,18 +437,22 @@ public class Main extends Application {
                 }
             if (curDay == null)
                 return;
-
+            int count=0;
             List<Lesson> lessons = curDay.getLessons();
+            int fieldOrder = Integer.parseInt(lessonsOrder.getText().replaceAll("\\D",""));
             for (int i = 0; i < lessons.size(); i++) {
-                if (lessons.get(i).getName().trim().compareToIgnoreCase(lessonsField.getText().trim()) == 0) {
-                    order = lessons.get(i).getOrder();
-                    lessons.remove(lessons.get(i));
+                Lesson lesson = lessons.get(i);
+                if (lesson.getName().trim().compareToIgnoreCase(lessonsField.getText().trim()) == 0
+                        && lesson.getOrder()==fieldOrder) {
+                    order = lesson.getOrder();
+                    lessons.remove(lesson);
+                    count++;
                 }
             }
             if (order != -5)
-                for (Day d : days)
-                    if (d.getOrder() >= order)
-                        d.setOrder(d.getOrder() - 1);
+                for (Lesson l : lessons)
+                    if (l.getOrder() >= order)
+                        l.setOrder(l.getOrder() - count);
             curDay.setLessons(lessons);
             displayedLessons.setItems(FXCollections.observableArrayList(lessons));
         });
@@ -454,10 +465,6 @@ public class Main extends Application {
             selectedTeachers.clearSelection();
             displayedTeachers.refresh();
         });
-        addTeacherToLessonBtn.setOnAction(event -> {
-            selectedLessons.getSelectedItem().addTeacher(selectedTeachers.getSelectedItem());
-            refreshLessonTeachers();
-        });
         deleteTeacherFromLessonBtn.setOnAction(event -> {
             selectedLessons.getSelectedItem().removeTeacher(selectedTeachers.getSelectedItem());
             refreshLessonTeachers();
@@ -465,31 +472,31 @@ public class Main extends Application {
         rb_teacher.setOnAction(event -> {
             if (selectedTeachers.getSelectedItems().isEmpty())
                 selectedTeachers.select(0);
-            displayedLessonType.setDisable(true);
-            displayedLessonTeachers.setDisable(true);
+//            displayedLessonType.setDisable(true);
+//            displayedLessonTeachers.setDisable(true);
             selectedLessons.setSelectionMode(SelectionMode.MULTIPLE);
-            selectedDays.clearAndSelect(selectedDays.getSelectedIndex());
+            refreshDays();
             int i = selectedTeachers.getSelectedIndex();
             selectedTeachers.select(i);
         });
         rb_type.setOnAction(event -> {
             if (selectedTypes.getSelectedItems().isEmpty())
                 selectedTypes.select(0);
-            displayedLessonType.setDisable(true);
-            displayedLessonTeachers.setDisable(true);
+//            displayedLessonType.setDisable(true);
+//            displayedLessonTeachers.setDisable(true);
             selectedLessons.setSelectionMode(SelectionMode.MULTIPLE);
-            selectedDays.clearAndSelect(selectedDays.getSelectedIndex());
+            refreshDays();
             int i = selectedTypes.getSelectedIndex();
             selectedTypes.clearSelection();
             selectedTypes.select(i);
             displayedTeacherLessons.setItems(FXCollections.observableArrayList());
         });
         rb_3.setOnAction(event -> {
-            displayedLessonType.setDisable(false);
-            displayedLessonTeachers.setDisable(false);
+//            displayedLessonType.setDisable(false);
+//            displayedLessonTeachers.setDisable(false);
             selectedDays.setSelectionMode(SelectionMode.SINGLE);
             selectedLessons.setSelectionMode(SelectionMode.SINGLE);
-            selectedDays.clearAndSelect(selectedDays.getSelectedIndex());
+            refreshDays();
         });
         //////////////////////////////////////////////////////////////////////
         Text daysLabelText = new Text("Дни недели");
@@ -510,9 +517,6 @@ public class Main extends Application {
         typesPane.setMaxHeight(320);
         teacherLessonsPane.setMaxHeight(320);
 
-
-
-
         FlowPane rootPane = new FlowPane(Orientation.HORIZONTAL, 10, 10, daysPane, lessonsPane, lessonDetailsPane, teachersPane, typesPane, teacherLessonsPane);
         rootPane.setAlignment(Pos.TOP_CENTER);
         rootPane.setPadding(new Insets(20));
@@ -522,7 +526,7 @@ public class Main extends Application {
         stage.setScene(scene);
         stage.setTitle("Курсовая работа, вариант 15");
 //        stage.setMaximized(true);
-        stage.setResizable(false);
+//        stage.setResizable(false);
         stage.setOpacity(0);
         stage.show();
         clearLessonSelection.setPrefWidth(lessonsPane.getWidth());
@@ -534,7 +538,6 @@ public class Main extends Application {
             } catch (InterruptedException ignored) {
             }
         }
-
     }
 }
 
